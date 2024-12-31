@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patient Dashboard</title>
+</head>
+<body>
+    <h1>Chào bệnh nhân!</h1>
+    <a href="{{ url_for('logout') }}">Đăng xuất</a>
+    <hr>
+    <h2>Hồ Sơ Bệnh Án Của Bạn</h2>
+    {% if patient_record %}
+        <p>Họ và Tên: {{ patient_record['name'] }}</p>
+        <p>Nhóm Máu: {{ patient_record['blood_type'] }}</p>
+        <p>Kết quả khám bệnh: {{ patient_record['diagnosis'] }}</p>
+
+        {% if patient_record['qr_base64'] %}
+            <h3>Mã QR Hồ Sơ Bệnh Án</h3>
+            <img src="data:image/png;base64,{{ patient_record['qr_base64'] }}" alt="QR Code">
+        {% else %}
+            <p>Không có mã QR cho hồ sơ bệnh án này.</p>
+        {% endif %}
+    {% else %}
+        <p>Chưa có hồ sơ bệnh án.</p>
+    {% endif %}
+</body>
+</html>

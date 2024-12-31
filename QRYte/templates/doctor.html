@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 36px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .form-container, .records-container {
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container h2, .records-container h2 {
+            font-size: 28px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        form label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+        }
+
+        form input, form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #218838;
+        }
+
+        .record-item {
+            padding: 10px;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .record-item a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .record-item a:hover {
+            text-decoration: underline;
+        }
+
+        .qr-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .qr-container img {
+            width: 200px;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chào bác sĩ!</h1>
+        <a href="{{ url_for('logout') }}">Đăng xuất</a>
+
+        <div class="form-container">
+            <h2>Nhập Hồ Sơ Bệnh Án</h2>
+            <form method="post">
+                <label for="patient_name">Họ và Tên Bệnh Nhân:</label>
+                <input type="text" id="patient_name" name="patient_name" required><br>
+                <label for="phone_number">Số Điện Thoại:</label>
+                <input type="text" id="phone_number" name="phone_number"><br>
+                <label for="cccd">CCCD:</label>
+                <input type="text" id="cccd" name="cccd"><br>
+                <label for="blood_type">Nhóm Máu:</label>
+                <input type="text" id="blood_type" name="blood_type"><br>
+                <label for="diagnosis">Kết Quả Khám Bệnh:</label>
+                <textarea id="diagnosis" name="diagnosis"></textarea><br>
+                <label for="treatment">Quá Trình Chẩn Đoán:</label>
+                <textarea id="treatment" name="treatment"></textarea><br>
+                <button type="submit">Lưu Hồ Sơ</button>
+            </form>
+        </div>
+
+        <div class="records-container">
+            <h2>Danh Sách Hồ Sơ</h2>
+            {% if medical_records %}
+                <ul>
+                {% for patient, record in medical_records.items() %}
+                    <li class="record-item">
+                        <strong>{{ patient }}</strong>: 
+                        SĐT - {{ record['phone_number'] }},
+                        CCCD - {{ record['cccd'] }},
+                        Nhóm máu - {{ record['blood_type'] }}<br>
+                        <a href="{{ url_for('generate_qr', patient_name=patient) }}">Tạo QR</a>
+                        {% if session.get('username') == patient %}
+                            <div class="qr-container">
+                                <h3>Mã QR của {{ patient }}</h3>
+                                <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code">
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>Chưa có hồ sơ nào.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
