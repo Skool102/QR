@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import qrcode
 import io
 import base64
+import os
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -30,7 +33,21 @@ def login():
             flash("Tên đăng nhập hoặc mật khẩu không đúng!", "error")
     return render_template("login.html")
 
-# Trang chính
+@app.route("/download_pdf/<string:phone_number>")
+def download_pdf(phone_number):
+    record = medical_records.get(phone_number)
+    if not record:
+        flash("Không tìm thấy hồ sơ bệnh án!", "error")
+        return redirect(url_for('index'))
+
+    pdf_path = f"static/pdfs/{record['name']}_qr.pdf"
+    if not os.path.exists(pdf_path):
+        flash("Không tìm thấy file PDF!", "error")
+        return redirect(url_for('index'))
+
+    return send_file(pdf_path, as_attachment=True)
+
+# Trang chính cho bác sĩ và bệnh nhân
 @app.route("/", methods=["GET", "POST"])
 def index():
     if 'username' not in session:
@@ -47,12 +64,11 @@ def index():
             treatment = request.form.get("treatment")
 
             if patient_name:
-                # Tạo tài khoản cho bệnh nhân nếu chưa tồn tại
-                if phone_number not in users:  # Kiểm tra nếu tài khoản chưa tồn tại
-                    users[phone_number] = {"password": "123456", "role": "patient"}  # Tạo tài khoản với số điện thoại và mật khẩu mặc định
+                if phone_number not in users:
+                    users[phone_number] = {"password": "123456", "role": "patient"}
 
-                # Lưu hồ sơ bệnh án vào medical_records
-                medical_records[phone_number] = {  # Lưu theo số điện thoại làm key
+                # Lưu hồ sơ bệnh án
+                medical_records[phone_number] = {
                     "name": patient_name,
                     "phone_number": phone_number,
                     "cccd": cccd,
@@ -60,20 +76,18 @@ def index():
                     "diagnosis": diagnosis,
                     "treatment": treatment
                 }
-
                 flash("Hồ sơ bệnh án đã được lưu và tài khoản bệnh nhân đã được tạo!", "success")
         return render_template("doctor.html", medical_records=medical_records)
-    
+
     elif role == "patient":
         patient_name = session.get('username')
-        patient_record = medical_records.get(patient_name, None)  # Lấy hồ sơ bệnh án theo username (số điện thoại)
+        patient_record = medical_records.get(patient_name, None)
         return render_template("patient.html", patient_record=patient_record)
-    
+
     return redirect(url_for('logout'))
 
 
-
-# Tạo mã QR cho hồ sơ bệnh án
+# Tạo mã QR và PDF cho hồ sơ bệnh án
 @app.route("/generate_qr/<string:phone_number>")
 def generate_qr(phone_number):
     if 'username' not in session or session.get('role') != "doctor":
@@ -82,15 +96,18 @@ def generate_qr(phone_number):
 
     record = medical_records.get(phone_number)
     if record:
-        qr_data = (
-        f"Họ và tên: {record['name']}\n"
-        f"Nhóm máu: {record['blood_type']}\n"
-        f"Kết quả khám bệnh: {record['diagnosis']}\n"
-        f"Quá trình chẩn đoán: {record['treatment']}"
-    )
+        pdf_path = f"static/pdfs/{record['name']}_qr.pdf"
+        generate_pdf_internal(record, pdf_path)
 
+        if not os.path.exists(pdf_path):
+            flash("Không tìm thấy file PDF!", "error")
+            return redirect(url_for('index'))
+
+        # Tạo link download PDF từ route download_pdf
+        pdf_url = url_for('download_pdf', phone_number=phone_number, _external=True)
+        
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(qr_data)
+        qr.add_data(pdf_url)
         qr.make(fit=True)
         img = qr.make_image(fill="black", back_color="white")
 
@@ -99,15 +116,29 @@ def generate_qr(phone_number):
         buffer.seek(0)
         qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-        # Lưu mã QR vào hồ sơ bệnh nhân
         medical_records[phone_number]['qr_code'] = qr_base64
-        
         flash("Mã QR đã được tạo thành công!", "success")
         return redirect(url_for('index'))
     else:
         flash("Không tìm thấy hồ sơ bệnh án!", "error")
         return redirect(url_for('index'))
 
+
+# Tạo file PDF cho hồ sơ bệnh án
+def generate_pdf_internal(record, pdf_path):
+    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+    
+    pdf = canvas.Canvas(pdf_path, pagesize=letter)
+    pdf.setTitle(f"Hồ sơ bệnh án - {record['name']}")
+
+    # Thêm thông tin bệnh nhân
+    pdf.drawString(100, 750, f"Họ và tên: {record['name']}")
+    pdf.drawString(100, 730, f"Nhóm máu: {record['blood_type']}")
+    pdf.drawString(100, 710, f"Kết quả khám bệnh: {record['diagnosis']}")
+    pdf.drawString(100, 690, f"Quá trình chẩn đoán: {record['treatment']}")
+
+    pdf.save()
+    
 
 
 # Đăng xuất
@@ -116,6 +147,7 @@ def logout():
     session.pop('username', None)
     session.pop('role', None)
     return redirect(url_for('login'))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
