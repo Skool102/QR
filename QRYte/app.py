@@ -74,44 +74,40 @@ def index():
 
 
 # Tạo mã QR cho hồ sơ bệnh án
-@app.route("/generate_qr/<string:patient_name>")
-def generate_qr(patient_name):
+@app.route("/generate_qr/<string:phone_number>")
+def generate_qr(phone_number):
     if 'username' not in session or session.get('role') != "doctor":
         flash("Bạn không có quyền truy cập chức năng này.", "error")
         return redirect(url_for('login'))
 
-    record = medical_records.get(patient_name)
+    record = medical_records.get(phone_number)
     if record:
-        qr_data = f"""
-        Họ và tên: {patient_name}
-        SĐT: {record['phone_number']}
-        CCCD: {record['cccd']}
-        Nhóm máu: {record['blood_type']}
-        Kết quả khám bệnh: {record['diagnosis']}
-        Quá trình chẩn đoán: {record['treatment']}
-        """
+        qr_data = (
+        f"Họ và tên: {record['name']}\n"
+        f"Nhóm máu: {record['blood_type']}\n"
+        f"Kết quả khám bệnh: {record['diagnosis']}\n"
+        f"Quá trình chẩn đoán: {record['treatment']}"
+    )
+
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(qr_data)
         qr.make(fit=True)
         img = qr.make_image(fill="black", back_color="white")
-        
-        # Chuyển đổi mã QR thành chuỗi base64
+
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         buffer.seek(0)
         qr_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         # Lưu mã QR vào hồ sơ bệnh nhân
-        if 'qr_codes' not in medical_records[patient_name]:
-            medical_records[patient_name]['qr_codes'] = []
-        medical_records[patient_name]['qr_codes'].append(qr_base64)
-
-        # Trả về template với mã QR
+        medical_records[phone_number]['qr_code'] = qr_base64
+        
         flash("Mã QR đã được tạo thành công!", "success")
         return redirect(url_for('index'))
     else:
         flash("Không tìm thấy hồ sơ bệnh án!", "error")
         return redirect(url_for('index'))
+
 
 
 # Đăng xuất

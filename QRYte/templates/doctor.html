@@ -137,7 +137,7 @@
                         SĐT - {{ record['phone_number'] }},
                         CCCD - {{ record['cccd'] }},
                         Nhóm máu - {{ record['blood_type'] }}<br>
-                        <a href="{{ url_for('generate_qr', patient_name=patient) }}">Tạo QR</a>
+                        <a href="{{ url_for('generate_qr', phone_number=record['phone_number']) }}">Tạo QR</a>
                         {% if session.get('username') == patient %}
                             <div class="qr-container">
                                 <h3>Mã QR của {{ patient }}</h3>
