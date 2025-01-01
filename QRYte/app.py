@@ -4,6 +4,8 @@ import io
 import base64
 import os
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 
 app = Flask(__name__)
@@ -124,22 +126,28 @@ def generate_qr(phone_number):
         return redirect(url_for('index'))
 
 
+
 # Tạo file PDF cho hồ sơ bệnh án
 def generate_pdf_internal(record, pdf_path):
     os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
     
     pdf = canvas.Canvas(pdf_path, pagesize=letter)
-    pdf.setTitle(f"Hồ sơ bệnh án - {record['name']}")
+    pdfmetrics.registerFont(TTFont('DejaVu', 'C:/Users/lapto/Downloads/dejavu-sans/DejaVuSans.ttf'))  
+    pdfmetrics.registerFont(TTFont('DejaVu-Bold', 'C:/Users/lapto/Downloads/dejavu-sans/DejaVuSans-Bold.ttf')) 
 
-    # Thêm thông tin bệnh nhân
-    pdf.drawString(100, 750, f"Họ và tên: {record['name']}")
-    pdf.drawString(100, 730, f"Nhóm máu: {record['blood_type']}")
-    pdf.drawString(100, 710, f"Kết quả khám bệnh: {record['diagnosis']}")
-    pdf.drawString(100, 690, f"Quá trình chẩn đoán: {record['treatment']}")
+
+    pdf.setTitle(f"Hồ sơ bệnh án - {record['name']}")
+    pdf.setFont("DejaVu-Bold", 30)  # Đặt font in đậm và kích thước 24 cho tiêu đề
+    pdf.drawString(250, 750, f"BỆNH ÁN")
+
+    pdf.setFont("DejaVu", 14)
+    pdf.drawString(100, 700, f"Họ và tên: {record['name']}")
+    pdf.drawString(100, 680, f"Nhóm máu: {record['blood_type']}")
+    pdf.drawString(100, 660, f"Kết quả khám bệnh: {record['diagnosis']}")
+    pdf.drawString(100, 640, f"Quá trình chẩn đoán: {record['treatment']}")
 
     pdf.save()
     
-
 
 # Đăng xuất
 @app.route("/logout")
